@@ -1,40 +1,59 @@
 const path = require('path');
 const fsPromises = require('fs').promises;
-const files = fsPromises.readdir(path.join(__dirname, 'components')); // получение файлов из директории components
+const fs = require('fs');
 
-fsPromises.mkdir(path.join(__dirname, 'project-dist'), {recursive: true});
+fsPromises.mkdir(path.join(__dirname, 'project-dist'), {recursive: true}); // создал папку
 fsPromises.copyFile(path.join(__dirname, 'template.html'), path.join(__dirname, 'project-dist', 'index.html'));
 
+async function readComponents() { // в этой функции код идет по мере выполения await
+  // получение файлов из директории component
+  const componentsArr = await fsPromises.readdir(path.join(__dirname, './components'));
+  console.log(componentsArr);
 
-fsPromises.readFile(path.join(__dirname, 'template.html'), 'utf-8', (err) => {
-  if (err) throw err;
-}).then(data => {
-  files.then(files => {           // files все components
-    const arr = data.split('\n'); // читать файл по строчно
-    console.log(arr)
+  let allPromises = [];
+  for(let i = 0; i < componentsArr.length; i++) {
+    const pathfile = path.join(__dirname, './components', componentsArr[i]);
+    const stream = new fs.ReadStream(pathfile, 'utf8');
 
-    const MAIN = [];
-    arr.forEach((line, idx) => {
-      for (let i = 0; i < files.length; i++) {
-        if (line.includes(files[i].slice(0, -5))) {
-          fsPromises.readFile(path.join(__dirname, 'components', files[i]), 'utf-8', err => {
-            if (err) throw err;
-          }).then(data => {
-            console.log('DATA', arr[idx])
-            arr.splice(idx, 1, data); // замена делаеться
-            console.log(arr);
-
-            //console.log('TRUE', data);
-          });
-
+    const html = await new Promise((res, req) => {
+      stream.on('readable', () => {
+        let data = stream.read();
+        if (data !== null) {
+          const components = {};
+          components[componentsArr[i].slice(0, -5)] = data;
+          res(components);
         }
+      });
+    });
+    allPromises.push(html);
+  }
+  return await Promise.all(allPromises);
+}
+readComponents().then(components => {
+  const objFragments = {};
+  components.forEach(item => {
+    for (let key in item) {
+      objFragments[key] = item[key];
+    }
+  });
+
+  fs.readFile(path.join(__dirname, 'project-dist', 'index.html'), 'utf-8', (err, template) => {
+    if (err) throw err;
+    for (let key in objFragments) {
+      let tag = `{{${key}}}`;
+      if (template.indexOf(tag)) {
+        let templateArrChars = template.split('');
+        let tagStart = template.indexOf(tag);
+        let tagSpace = tag.length;
+        templateArrChars.splice(tagStart, tagSpace, objFragments[key]);
+        template = templateArrChars.join('');
       }
+    } // end for
 
+    fs.writeFile(path.join(__dirname, 'project-dist', 'index.html'), template, err => {
+      if (err) throw err;
+    });
 
-
-    }); // end forEach
-
-    console.log('ARRAY', arr[17])
   });
 });
 
