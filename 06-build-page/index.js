@@ -5,10 +5,9 @@ const fs = require('fs');
 fsPromises.mkdir(path.join(__dirname, 'project-dist'), {recursive: true}); // создал папку
 fsPromises.copyFile(path.join(__dirname, 'template.html'), path.join(__dirname, 'project-dist', 'index.html'));
 
-async function readComponents() { // в этой функции код идет по мере выполения await
+async function readComponents() {
   // получение файлов из директории component
   const componentsArr = await fsPromises.readdir(path.join(__dirname, './components'));
-  console.log(componentsArr);
 
   let allPromises = [];
   for(let i = 0; i < componentsArr.length; i++) {
@@ -41,11 +40,37 @@ readComponents().then(components => {
     if (err) throw err;
     for (let key in objFragments) {
       let tag = `{{${key}}}`;
-      if (template.indexOf(tag)) {
+
+
+      if (template.includes(tag)) {
+        let templateArrStrings = template.split('\n');
+        let space = 0;
+        for (let i = 0; i < templateArrStrings.length; i++) { // получить отступы template
+          if (templateArrStrings[i].includes(tag)) {
+            let arr = templateArrStrings[i].split(' ');
+            let tab = arr.length - 1;
+            space = ' '.repeat(tab);
+            break;
+          }
+        }
+
+
+        let objFragmentsArr = (objFragments[key]).split('\n'); // добавить отступы template в components
+        let fragmentModify = '';
+        objFragmentsArr.forEach((item, idx, arr) => {
+          if (idx > 0) {
+            arr[idx] = space + item;
+            fragmentModify += `${arr[idx]}\n`;
+          } else {
+            fragmentModify += `${arr[idx]}\n`;
+          }
+        });
+        objFragments[key] = fragmentModify.slice(0, -1);
+
+
+
         let templateArrChars = template.split('');
-        let tagStart = template.indexOf(tag);
-        let tagSpace = tag.length;
-        templateArrChars.splice(tagStart, tagSpace, objFragments[key]);
+        templateArrChars.splice(template.indexOf(tag), tag.length, objFragments[key]);
         template = templateArrChars.join('');
       }
     } // end for
@@ -58,3 +83,4 @@ readComponents().then(components => {
 });
 
 // node 06-build-page
+
