@@ -82,5 +82,33 @@ readComponents().then(components => {
   });
 });
 
+// Merge styles
+fs.readdir(path.join(__dirname, 'styles'), {withFileTypes: true}, (err, data) => {
+  if (err) throw err;
+  const styles = data.map((file) => {
+    if (file.isFile()) {
+      return file.name;
+    }
+  });
+
+  const result = [];
+  styles.forEach(file => {
+    fs.readFile(path.join(__dirname, 'styles', file), 'utf-8', (err, data) => {
+      if (err) throw err;
+      result.push(data);
+
+
+
+      fs.writeFile(path.join(__dirname, 'project-dist', 'style.css'), result.join(''), err => {
+        if (err) throw err;
+      });
+    });
+  });
+});
+
+// Copy assets
+
+
+
 // node 06-build-page
 
