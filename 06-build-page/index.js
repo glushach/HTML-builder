@@ -107,8 +107,24 @@ fs.readdir(path.join(__dirname, 'styles'), {withFileTypes: true}, (err, data) =>
 });
 
 // Copy assets
+async function copyAssets() {
+  const assetsDirPath = path.join(__dirname, 'assets');
+  const assetsDirs = await fsPromises.readdir(assetsDirPath, {withFileTypes: true});
 
+  assetsDirs.forEach(async dir => {
+    fsPromises.mkdir(path.join(__dirname, 'project-dist', 'assets', dir.name), {recursive: true}); // создал папку assets
 
-
+    const innerassetsDirs = await fsPromises.readdir(path.join(__dirname, 'assets', dir.name), {withFileTypes: true});
+    innerassetsDirs.forEach(file => {
+      fs.readFile(path.join(__dirname, 'assets', dir.name, file.name), 'utf-8', (err, data) => {
+        if (err) throw err;
+        fs.writeFile(path.join(__dirname, 'project-dist', 'assets', dir.name, file.name), data, err => {
+          if (err) throw err;
+        });
+      });
+    });
+  });
+}
+copyAssets();
 // node 06-build-page
 
