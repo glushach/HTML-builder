@@ -111,17 +111,37 @@ async function copyAssets() {
   const assetsDirPath = path.join(__dirname, 'assets');
   const assetsDirs = await fsPromises.readdir(assetsDirPath, {withFileTypes: true});
 
-  assetsDirs.forEach(async dir => {
-    await fsPromises.mkdir(path.join(__dirname, 'project-dist', 'assets', dir.name), {recursive: true}); // создал папку assets
+  await fs.stat(path.join(__dirname, 'project-dist', 'assets'), (async err => {
+    if (!err) { // clear directory 'project-dist/assets'
+      fs.rm(path.join(__dirname, 'project-dist', 'assets'), { recursive: true }, async (err1) => {
+        if (err1) throw err1;
+        await assetsDirs.forEach(async dir => {
+          await fsPromises.mkdir(path.join(__dirname, 'project-dist', 'assets', dir.name), {recursive: true}); // создал папку assets
 
-    const innerassetsDirs = await fsPromises.readdir(path.join(__dirname, 'assets', dir.name), {withFileTypes: true});
+          const innerassetsDirs = await fsPromises.readdir(path.join(__dirname, 'assets', dir.name), {withFileTypes: true});
 
-    innerassetsDirs.forEach(file => {
-      const src = path.join(__dirname, 'assets', dir.name, file.name);
-      const dist = path.join(__dirname, 'project-dist', 'assets', dir.name, file.name);
-      fsPromises.copyFile(src, dist, 2);
-    });
-  });
+          innerassetsDirs.forEach(file => {
+            const src = path.join(__dirname, 'assets', dir.name, file.name);
+            const dist = path.join(__dirname, 'project-dist', 'assets', dir.name, file.name);
+            fsPromises.copyFile(src, dist, 2);
+          });
+        });
+      });
+    } else {
+      await assetsDirs.forEach(async dir => {
+        await fsPromises.mkdir(path.join(__dirname, 'project-dist', 'assets', dir.name), {recursive: true}); // создал папку assets
+
+        const innerassetsDirs = await fsPromises.readdir(path.join(__dirname, 'assets', dir.name), {withFileTypes: true});
+
+        innerassetsDirs.forEach(file => {
+          const src = path.join(__dirname, 'assets', dir.name, file.name);
+          const dist = path.join(__dirname, 'project-dist', 'assets', dir.name, file.name);
+          fsPromises.copyFile(src, dist, 2);
+        });
+      });
+    }
+  }));
+
 }
 copyAssets();
 // node 06-build-page
